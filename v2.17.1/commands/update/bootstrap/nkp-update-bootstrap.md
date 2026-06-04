@@ -1,0 +1,19 @@
+# `nkp update bootstrap`
+
+```text
+Update bootstrap cluster
+
+Usage:
+  nkp update bootstrap [command]
+
+Available Commands:
+  credentials Update credentials in the cluster
+
+Flags:
+  -h, --help   Help for bootstrap
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+
+Use "nkp update bootstrap [command] --help" for more information about a command.
+```

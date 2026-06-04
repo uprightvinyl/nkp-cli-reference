@@ -1,0 +1,21 @@
+# `nkp describe`
+
+```text
+Describe one of [cluster]
+
+Usage:
+  nkp describe [command]
+
+Available Commands:
+  cluster     Describe a Kubernetes cluster status
+
+Flags:
+  -h, --help          Help for describe
+  -v, --verbose int   Output verbosity
+
+Use "nkp describe [command] --help" for more information about a command.
+```
+
+## Subcommands
+
+- [`nkp describe cluster`](cluster/nkp-describe-cluster.md)

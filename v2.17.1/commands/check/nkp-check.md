@@ -1,0 +1,21 @@
+# `nkp check`
+
+```text
+Check, one of [cluster]
+
+Usage:
+  nkp check [command]
+
+Available Commands:
+  cluster     Check a cluster, one of [fips]
+
+Flags:
+  -h, --help          Help for check
+  -v, --verbose int   Output verbosity
+
+Use "nkp check [command] --help" for more information about a command.
+```
+
+## Subcommands
+
+- [`nkp check cluster`](cluster/nkp-check-cluster.md)

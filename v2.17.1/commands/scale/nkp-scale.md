@@ -1,0 +1,21 @@
+# `nkp scale`
+
+```text
+Scale one of [nodepool]
+
+Usage:
+  nkp scale [command]
+
+Available Commands:
+  nodepool    Scale a nodepool of a given cluster to the number of replicas
+
+Flags:
+  -h, --help          Help for scale
+  -v, --verbose int   Output verbosity
+
+Use "nkp scale [command] --help" for more information about a command.
+```
+
+## Subcommands
+
+- [`nkp scale nodepool`](nodepool/nkp-scale-nodepool.md)

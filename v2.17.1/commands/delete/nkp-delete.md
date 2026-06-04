@@ -1,0 +1,30 @@
+# `nkp delete`
+
+```text
+Delete one of [bootstrap, capi-components, chart, cluster, nodepool]
+
+Usage:
+  nkp delete [command]
+
+Available Commands:
+  bootstrap       Delete bootstrap cluster
+  capi-components Delete the CAPI components from the cluster
+  chart           Delete a chart from the repository
+  cluster         Delete a Kubernetes cluster
+  nodepool        Delete a nodepool for a given cluster
+
+Flags:
+  -h, --help   Help for delete
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+
+Use "nkp delete [command] --help" for more information about a command.
+```
+
+## Subcommands
+
+- [`nkp delete bootstrap`](bootstrap/nkp-delete-bootstrap.md)
+- [`nkp delete chart`](chart/nkp-delete-chart.md)
+- [`nkp delete cluster`](cluster/nkp-delete-cluster.md)
+- [`nkp delete nodepool`](nodepool/nkp-delete-nodepool.md)

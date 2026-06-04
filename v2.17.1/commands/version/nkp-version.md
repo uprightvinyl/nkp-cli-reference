@@ -1,0 +1,16 @@
+# `nkp version`
+
+```text
+Print version information
+
+Usage:
+  nkp version [flags]
+
+Flags:
+  -h, --help            Help for version
+      --long            If true, print additional version information.
+  -o, --output string   One of 'yaml' or 'json'.
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+```
