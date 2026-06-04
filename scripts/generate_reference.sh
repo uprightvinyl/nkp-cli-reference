@@ -18,9 +18,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+USE_TEMPLATE=true
 if [[ ! -f "$TEMPLATE_PATH" ]]; then
+  USE_TEMPLATE=false
   echo "Template not found: $TEMPLATE_PATH" >&2
-  exit 1
+  echo "Continuing without a template." >&2
 fi
 
 if ! command -v nkp >/dev/null 2>&1; then
@@ -52,10 +54,16 @@ python3 "$ROOT_DIR/scripts/generate_markdown.py" \
   --version "$VERSION" >/dev/null
 
 echo "Exporting DOCX for $VERSION..."
-python3 "$ROOT_DIR/scripts/export_docx.py" \
-  --root "$ROOT_DIR" \
-  --version "$VERSION" \
-  --template "$TEMPLATE_PATH" >/dev/null
+if [[ "$USE_TEMPLATE" == "true" ]]; then
+  python3 "$ROOT_DIR/scripts/export_docx.py" \
+    --root "$ROOT_DIR" \
+    --version "$VERSION" \
+    --template "$TEMPLATE_PATH" >/dev/null
+else
+  python3 "$ROOT_DIR/scripts/export_docx.py" \
+    --root "$ROOT_DIR" \
+    --version "$VERSION" >/dev/null
+fi
 
 echo "Done:"
 echo "  Markdown: $VERSION_DIR"

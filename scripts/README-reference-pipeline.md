@@ -25,6 +25,9 @@ Use a different template:
 bash scripts/generate_reference.sh "templates/General Document TEMPLATE.docx"
 ```
 
+If the template file is missing, generation continues and creates a DOCX
+using default Word styling.
+
 Force regeneration even if outputs exist:
 
 ```bash
