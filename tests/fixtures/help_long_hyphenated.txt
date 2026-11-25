@@ -1,0 +1,9 @@
+Available Commands:
+  appdeployments Get AppDeployments from a Workspace
+  catalog-repository Generate the catalog repository layout
+  chart-bundle Upload chart bundles to the repository
+  image-bundle Create an image bundle
+  default-workspace Get the default workspace
+
+Flags:
+  -h, --help   Help for command

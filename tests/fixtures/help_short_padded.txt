@@ -1,0 +1,7 @@
+Available Commands:
+  bundle       Push from bundles into an existing OCI registry
+  chart        Upload charts to the repository
+  help         Help about any command
+
+Flags:
+  -h, --help   Help for push

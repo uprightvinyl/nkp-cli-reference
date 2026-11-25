@@ -1,0 +1,4 @@
+Some other help text without a commands list.
+
+Flags:
+  -h, --help   Help for command

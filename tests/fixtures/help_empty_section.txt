@@ -1,0 +1,4 @@
+Available Commands:
+
+Flags:
+  -h, --help   Help for command
