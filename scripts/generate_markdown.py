@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -289,6 +290,173 @@ def write_pages(root: CommandNode, version_dir: Path) -> None:
         )
 
 
+@dataclass(frozen=True)
+class CompletenessIssue:
+    path: Path
+    message: str
+    severity: str  # "error" | "warning"
+
+
+_FIRST_FENCE = re.compile(r"```text\n(.*?)```", re.DOTALL)
+_SUMMARY_ONE_OF = re.compile(r"\bone of \[([^\]]+)\]", re.IGNORECASE)
+_PAGE_TITLE = re.compile(r"^# `(.+)`\s*$")
+
+
+def extract_first_help_dump(page_md: str) -> str:
+    """Return the page's own help fence (first ```text block), not embeds."""
+    match = _FIRST_FENCE.search(page_md)
+    return match.group(1) if match else ""
+
+
+def page_command_from_md(page_md: str) -> str | None:
+    for line in page_md.splitlines():
+        if not line.strip():
+            continue
+        match = _PAGE_TITLE.match(line.strip())
+        return match.group(1) if match else None
+    return None
+
+
+def extract_summary_names(help_text: str) -> list[str]:
+    """Names listed in the one-line 'one of […]' summary before Usage/Available."""
+    names: list[str] = []
+    for line in help_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Usage:") or stripped == "Available Commands:":
+            break
+        match = _SUMMARY_ONE_OF.search(line)
+        if not match:
+            continue
+        for part in match.group(1).split(","):
+            token = re.sub(r"\s*\([^)]*\)\s*", "", part).strip()
+            if token:
+                names.append(token)
+    return names
+
+
+def covered_direct_children(
+    page_md: str, page_command: str
+) -> dict[str, str | None]:
+    """Map direct child name → relative link href, or None when covered by ### embed."""
+    covered: dict[str, str | None] = {}
+    link_re = re.compile(
+        rf"^- \[`{re.escape(page_command)} ([a-zA-Z0-9_-]+)`\]\(([^)]+)\)\s*$",
+        re.MULTILINE,
+    )
+    for match in link_re.finditer(page_md):
+        covered[match.group(1)] = match.group(2)
+
+    # Exact one extra token so nested embeds do not satisfy a direct child.
+    embed_re = re.compile(
+        rf"^### `{re.escape(page_command)} ([a-zA-Z0-9_-]+)`\s*$",
+        re.MULTILINE,
+    )
+    for match in embed_re.finditer(page_md):
+        covered.setdefault(match.group(1), None)
+    return covered
+
+
+def check_page_completeness(page_path: Path) -> list[CompletenessIssue]:
+    """Assert Available Commands on a page are linked or embedded (files exist)."""
+    issues: list[CompletenessIssue] = []
+    page_md = page_path.read_text(encoding="utf-8")
+    page_command = page_command_from_md(page_md)
+    if not page_command:
+        return issues
+
+    help_dump = extract_first_help_dump(page_md)
+    available = extract_subcommands(help_dump)
+    covered = covered_direct_children(page_md, page_command)
+
+    for name in available:
+        if name not in covered:
+            issues.append(
+                CompletenessIssue(
+                    path=page_path,
+                    message=(
+                        f"Available Commands entry `{name}` has no linked child "
+                        f"page or `###` embed under `{page_command}`"
+                    ),
+                    severity="error",
+                )
+            )
+            continue
+        href = covered[name]
+        if href is None:
+            continue
+        target = (page_path.parent / href).resolve()
+        if not target.is_file():
+            issues.append(
+                CompletenessIssue(
+                    path=page_path,
+                    message=(
+                        f"linked child `{page_command} {name}` points to "
+                        f"missing file `{href}`"
+                    ),
+                    severity="error",
+                )
+            )
+
+    # Only compare summary inventories on parents that list Available Commands.
+    # Leaf pages often say "for one of [ubuntu-22.04, …]" for args, not children.
+    if "Available Commands:" in help_dump:
+        available_set = set(available)
+        for name in extract_summary_names(help_dump):
+            if name not in available_set:
+                issues.append(
+                    CompletenessIssue(
+                        path=page_path,
+                        message=(
+                            f"summary mentions `{name}` but it is absent from "
+                            f"Available Commands (upstream help drift)"
+                        ),
+                        severity="warning",
+                    )
+                )
+
+    return issues
+
+
+def check_generated_docs(version_dir: Path) -> list[CompletenessIssue]:
+    """Walk every generated markdown page under version_dir for completeness."""
+    issues: list[CompletenessIssue] = []
+    for path in sorted(version_dir.rglob("*.md")):
+        if path.name == "README.md":
+            continue
+        issues.extend(check_page_completeness(path))
+    return issues
+
+
+def verify_completeness(version_dir: Path) -> None:
+    """Print warnings; exit non-zero when Available Commands coverage has gaps."""
+    issues = check_generated_docs(version_dir)
+    warnings = [i for i in issues if i.severity == "warning"]
+    errors = [i for i in issues if i.severity == "error"]
+
+    for issue in warnings:
+        rel = issue.path
+        try:
+            rel = issue.path.relative_to(version_dir)
+        except ValueError:
+            pass
+        print(f"WARNING: {rel}: {issue.message}", file=sys.stderr)
+
+    for issue in errors:
+        rel = issue.path
+        try:
+            rel = issue.path.relative_to(version_dir)
+        except ValueError:
+            pass
+        print(f"ERROR: {rel}: {issue.message}", file=sys.stderr)
+
+    if errors:
+        print(
+            f"Completeness check failed: {len(errors)} gap(s) in {version_dir}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+
 def write_root_index(output_root: Path) -> None:
     versions = sorted(
         [
@@ -333,6 +501,7 @@ def main() -> None:
     version_dir.mkdir(parents=True, exist_ok=True)
 
     write_pages(root, version_dir)
+    verify_completeness(version_dir)
     write_root_index(output_root)
 
     print(f"Generated structured docs in: {version_dir}")
