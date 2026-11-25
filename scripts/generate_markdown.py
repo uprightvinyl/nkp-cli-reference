@@ -95,7 +95,10 @@ def extract_subcommands(help_text: str) -> list[str]:
         if not in_section:
             continue
 
-        match = re.match(r"^\s{2,}([a-zA-Z0-9_-]+)\s{2,}", line)
+        # Cobra pads descriptions to a column. Short names get two+ spaces;
+        # long hyphenated names often get only a single space before the
+        # description, so require one-or-more whitespace (not two-or-more).
+        match = re.match(r"^\s{2,}([a-zA-Z0-9_-]+)(?:\s+|$)", line)
         if match:
             subcommands.append(match.group(1))
     return subcommands
