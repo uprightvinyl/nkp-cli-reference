@@ -1,0 +1,14 @@
+# `nkp diagnose default-config`
+
+```text
+Prints the default configuration of the diagnostics bundle collectors
+
+Usage:
+  nkp diagnose default-config [flags]
+
+Flags:
+  -h, --help   Help for default-config
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+```

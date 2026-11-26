@@ -1,0 +1,23 @@
+# `nkp scale nodepool`
+
+```text
+Scale a nodepool of a given cluster to the number of replicas
+
+Usage:
+  nkp scale nodepool name [flags]
+
+Aliases:
+  nodepool, nodepools
+
+Flags:
+  -c, --cluster-name name         Name used to prefix the cluster and all the created resources.
+  -h, --help                      Help for nodepool
+      --kubeconfig string         Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.
+  -n, --namespace string          If present, the namespace scope for this CLI request. (default "default")
+      --nodes-to-delete strings   A list of node names to mark for deletion when scaling down a node pool. If left empty, the nodes to delete will be selected at random. (default [])
+      --replicas int32            The new desired number of replicas.
+      --use-context string        Use a specific context in a kubeconfig file.
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+```

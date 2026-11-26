@@ -1,0 +1,16 @@
+# `nkp import image-bundle`
+
+```text
+Import images from image bundles into Containerd
+
+Usage:
+  nkp import image-bundle [flags]
+
+Flags:
+      --containerd-namespace string   Containerd namespace to import images into (default "k8s.io")
+  -h, --help                          Help for image-bundle
+      --image-bundle strings          Tarball containing list of images to import. Can also be a glob pattern. (default [])
+
+Global Flags:
+  -v, --verbose int   Output verbosity
+```
