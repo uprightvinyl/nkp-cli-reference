@@ -1,0 +1,19 @@
+# `nkp get nodepools`
+
+```text
+Get nodepools for a given cluster
+
+Usage:
+  nkp get nodepools [flags]
+
+Aliases:
+  nodepools, nodepool
+
+Flags:
+  -c, --cluster-name name    Name used to prefix the cluster and all the created resources.
+  -h, --help                 Help for nodepools
+      --kubeconfig string    Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.
+  -n, --namespace string     If present, the namespace scope for this CLI request. (default "default")
+      --use-context string   Use a specific context in a kubeconfig file.
+  -v, --verbose int          Output verbosity
+```
