@@ -31,6 +31,10 @@ class CommandNode:
         return " ".join(self.tokens)
 
 
+class VersionError(RuntimeError):
+    """Raised when the NKP version cannot be resolved safely."""
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -39,11 +43,53 @@ def parse_args() -> argparse.Namespace:
         help="Optional flat markdown input directory. If omitted, reads live nkp help.",
     )
     parser.add_argument("--output-root", default=".")
-    parser.add_argument("--version", default="")
+    parser.add_argument(
+        "--version",
+        default="",
+        help=(
+            "Version folder name. Must match live `nkp version` unless used with "
+            "--input-dir and --allow-version-mismatch."
+        ),
+    )
+    parser.add_argument(
+        "--allow-version-mismatch",
+        action="store_true",
+        help=(
+            "Allow --version to differ from live `nkp version` when regenerating "
+            "from --input-dir (offline / recorded help dumps)."
+        ),
+    )
+    parser.add_argument(
+        "--print-version",
+        action="store_true",
+        help="Print the detected live nkp version and exit (shared with the shell wrapper).",
+    )
     return parser.parse_args()
 
 
+def parse_version_output(text: str) -> str | None:
+    """Extract the nkp version string from `nkp version` stdout.
+
+    Accepts lines such as ``nkp: v2.17.1`` or ``nkp:v2.17.1`` (optional spaces
+    around the colon). Returns None when no usable version line is present.
+    """
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("nkp:"):
+            continue
+        _, _, value = line.partition(":")
+        value = value.strip()
+        if value:
+            return value
+    return None
+
+
 def detect_version() -> str:
+    """Return the installed nkp version string.
+
+    Raises VersionError instead of returning ``unknown``, so callers never create
+    an ``unknown/`` output directory by accident.
+    """
     try:
         proc = subprocess.run(
             ["nkp", "version"],
@@ -51,18 +97,75 @@ def detect_version() -> str:
             text=True,
             check=False,
         )
-    except FileNotFoundError:
-        return "unknown"
+    except FileNotFoundError as exc:
+        raise VersionError("nkp is not installed or not on PATH") from exc
 
     if proc.returncode != 0:
-        return "unknown"
+        detail = (proc.stderr or proc.stdout or "").strip()
+        suffix = f": {detail}" if detail else ""
+        raise VersionError(
+            f"`nkp version` failed with exit code {proc.returncode}{suffix}"
+        )
 
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if line.startswith("nkp:"):
-            _, _, value = line.partition(":")
-            return value.strip() or "unknown"
-    return "unknown"
+    parsed = parse_version_output(proc.stdout or "")
+    if parsed is None:
+        raise VersionError(
+            "could not parse version from `nkp version` output "
+            "(expected a line like 'nkp: vX.Y.Z')"
+        )
+    return parsed
+
+
+def resolve_version(
+    requested: str,
+    *,
+    input_dir: str = "",
+    allow_mismatch: bool = False,
+    detected: str | None = None,
+    detect_error: VersionError | None = None,
+) -> str:
+    """Choose the version folder name, refusing unsafe mismatches / unknown.
+
+    Live crawls must use the detected binary version. ``--version`` may only
+    differ when regenerating from ``--input-dir`` with ``--allow-version-mismatch``.
+    """
+    offline = bool(input_dir)
+
+    if detected is None and detect_error is None:
+        try:
+            detected = detect_version()
+        except VersionError as exc:
+            detect_error = exc
+
+    if detected is None:
+        if offline and requested:
+            # No live binary to compare against; use the explicit folder name.
+            return requested
+        if detect_error is not None:
+            raise detect_error
+        raise VersionError("could not detect nkp version")
+
+    if not requested:
+        return detected
+
+    if requested == detected:
+        return requested
+
+    if allow_mismatch and offline:
+        return requested
+
+    if allow_mismatch and not offline:
+        raise VersionError(
+            f"--version {requested!r} does not match live `nkp version` "
+            f"({detected!r}). --allow-version-mismatch only applies with "
+            f"--input-dir (offline regeneration)."
+        )
+
+    raise VersionError(
+        f"--version {requested!r} does not match live `nkp version` "
+        f"({detected!r}). Omit --version to use the detected value, or use "
+        f"--input-dir with --allow-version-mismatch for offline regeneration."
+    )
 
 
 def render_help(cmd_tokens: tuple[str, ...]) -> str:
@@ -481,8 +584,34 @@ def write_root_index(output_root: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+
+    if args.print_version:
+        try:
+            print(detect_version())
+        except VersionError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+        return
+
+    try:
+        version = resolve_version(
+            args.version,
+            input_dir=args.input_dir,
+            allow_mismatch=args.allow_version_mismatch,
+        )
+    except VersionError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    if version in ("", "unknown"):
+        print(
+            "error: refusing to create an 'unknown/' version directory; "
+            "fix `nkp version` detection or pass an explicit --version",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     output_root = Path(args.output_root)
-    version = args.version or detect_version()
 
     if args.input_dir:
         docs = load_flat_docs(Path(args.input_dir))

@@ -30,8 +30,9 @@ if ! command -v nkp >/dev/null 2>&1; then
   exit 1
 fi
 
-VERSION="$(nkp version 2>/dev/null | awk -F': ' '/^nkp:/{print $2; exit}')"
-if [[ -z "$VERSION" ]]; then
+# Same detect_version() logic as generate_markdown.py (shared --print-version helper).
+VERSION="$(python3 "$ROOT_DIR/scripts/generate_markdown.py" --print-version)"
+if [[ -z "$VERSION" || "$VERSION" == "unknown" ]]; then
   echo "Failed to detect nkp version" >&2
   exit 1
 fi
