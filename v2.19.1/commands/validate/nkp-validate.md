@@ -1,0 +1,21 @@
+# `nkp validate`
+
+```text
+Validate one of [catalog-repository]
+
+Usage:
+  nkp validate [command]
+
+Available Commands:
+  catalog-repository Validate the given catalog repository contents
+
+Flags:
+  -h, --help          Help for validate
+  -v, --verbose int   Output verbosity
+
+Use "nkp validate [command] --help" for more information about a command.
+```
+
+## Subcommands
+
+- [`nkp validate catalog-repository`](catalog-repository/nkp-validate-catalog-repository.md)
